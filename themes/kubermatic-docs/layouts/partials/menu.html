@@ -1,15 +1,16 @@
-<nav id="sidebar" class="{{ if $.Site.Params.showVisitedLinks }}showVisitedLinks{{ end }}">
-  {{ $currentNode := . }}
-  {{ $showvisitedlinks := .Site.Params.showVisitedLinks }}
+<nav id="sidebar"{{if site.Params.showVisitedLinks}} class="showVisitedLinks"{{end}}>
+  {{ $currentPage := . }}
+  {{ $showvisitedlinks := site.Params.showVisitedLinks }}
   {{ $topSection := .FirstSection.Section }}
-  {{ $products := $.Site.Data.products }}
+  {{ $products := site.Data.products }}
   {{ $product := index $products $topSection }}
 
-  {{ $sectionLabel := .Site.Params.sectionLabel }}
-  {{ $versionLabel := .Site.Params.versionLabel }}
+  {{ $sectionLabel := site.Params.sectionLabel }}
+  {{ $versionLabel := site.Params.versionLabel }}
   <div id="header-wrapper">
-    {{with sort $products ".weight"}}
+    {{if $products}}
     <div class="products-toogle">
+      {{with sort $products ".weight"}}
       <div class="products-toogle-select">
         {{with $sectionLabel}}
         <label for="product-select" class="products-toogle-label">{{.}}</label>
@@ -23,10 +24,11 @@
               {{$url = (cond (gt (len .versions) 1) (index .versions 1) (index .versions 0)).release}}
               {{$title = .name}}
             {{end}}
-            <option value="{{printf `/%s/%s/` $key $url | relURL}}"{{if in (split $.RelPermalink `/`) $key}} selected{{end}}>{{.textName | default $title}}</option>
+            <option value="{{printf `/%s/%s/` $key $url | relURL}}"{{if in (split $currentPage.RelPermalink `/`) $key}} selected{{end}}>{{.textName | default $title}}</option>
           {{end}}
         </select>
       </div>
+      {{end}}
       {{with $product}}
         {{if .versions}}
         <div class="products-toogle-select">
@@ -35,7 +37,7 @@
           {{end}}
           <select id="version-select" onchange="location = this.value;">
             {{range .versions}}
-              {{template "optionInDifferentVersion" dict "root" $ "sect" . "topSection" $topSection "version" .}}
+              {{template "optionInDifferentVersion" dict "root" $currentPage "topSection" $topSection "version" .}}
             {{end}}
           </select>
         </div>
@@ -43,7 +45,7 @@
       {{end}}
     </div>
     {{end}}
-    {{if not .Site.Params.disableSearch}}
+    {{if not site.Params.disableSearch}}
       {{partial "search.html" .}}
     {{end}}
   </div>
@@ -53,43 +55,43 @@
       {{with $product}}
         {{if .versions}}
           {{range .versions}}
-            {{if in (split $.RelPermalink "/") .release}}
+            {{if in (split $currentPage.RelPermalink "/") .release}}
               {{$path := print "/" $topSection "/" .release}}
-              {{$docVersion := $.Site.GetPage $path}}
-              {{if eq .Site.Params.ordersectionsby "title"}}
+              {{$docVersion := site.GetPage $path}}
+              {{if eq site.Params.ordersectionsby "title"}}
                 {{range $docVersion.Sections.ByTitle}}
-                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
                 {{end}}
               {{else}}
                 {{range $docVersion.Sections.ByWeight}}
-                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
                 {{end}}
               {{end}}
             {{end}}
           {{end}}
         {{else}}
           {{$path := print "/" $topSection "/"}}
-          {{$docVersion := $.Site.GetPage $path}}
-          {{if eq .Site.Params.ordersectionsby "title"}}
+          {{$docVersion := site.GetPage $path}}
+          {{if eq site.Params.ordersectionsby "title"}}
             {{range $docVersion.Sections.ByTitle}}
-              {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+              {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
             {{end}}
           {{else}}
             {{range $docVersion.Sections.ByWeight}}
-              {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+              {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
             {{end}}
           {{end}}
         {{end}}
       {{else}}
         {{$path := print "/" $topSection "/"}}
-        {{$docVersion := $.Site.GetPage $path}}
-        {{if eq .Site.Params.ordersectionsby "title"}}
+        {{$docVersion := site.GetPage $path}}
+        {{if eq site.Params.ordersectionsby "title"}}
           {{range $docVersion.Sections.ByTitle}}
-            {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+            {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
           {{end}}
         {{else}}
           {{range $docVersion.Sections.ByWeight}}
-            {{template "section-tree-nav" dict "sect" . "currentnode" $currentNode "showvisitedlinks" $showvisitedlinks}}
+            {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
           {{end}}
         {{end}}
       {{end}}
@@ -176,23 +178,19 @@
   {{ end }}
 {{ end }}
 
-{{- define "optionInDifferentVersion" -}}
-  {{- $root := .root -}}
-  {{- $topSection := .topSection -}}
-  {{- $version := .version -}}
-
-  {{/* create a prefix like "kubermatic/v2.14" */}}
-  {{- $productPathPrefix := path.Join $topSection $version.release -}}
+{{define "optionInDifferentVersion"}}
+  {{$root := .root}}
+  {{$topSection := .topSection}}
+  {{$version := .version}}
 
   <option
-    value="{{ template "findBestMatchInVersion" dict "root" $root "page" $root.Page "product" $topSection "release" $version.release }}"
+    value="{{template `findBestMatchInVersion` dict `root` $root `product` $topSection `release` $version.release}}"
     {{if in (split $root.RelPermalink `/`) $version.release}} selected{{end}}
-  >{{ $version.name }}</option>
-{{- end -}}
+  >{{$version.name}}</option>
+{{end}}
 
 {{- define "findBestMatchInVersion" -}}
   {{- $root := .root -}}
-  {{- $page := .page -}}
   {{- $topSection := .product -}}
   {{- $release := .release -}}
 
@@ -200,14 +198,14 @@
   {{- $productPathPrefix := path.Join $topSection $release -}}
 
   {{/* strip product and version from the path (i.e. remove the first two path elements) */}}
-  {{- $relFilePath := path.Join (after 2 (split $page.File "/")) -}}
+  {{- $relFilePath := path.Join (after 2 (split $root.File "/")) -}}
   {{- $absFilePath := path.Join $productPathPrefix $relFilePath -}}
 
   {{- if fileExists $absFilePath -}}
     {{- ($root.GetPage $absFilePath).RelPermalink -}}
   {{- else -}}
     {{/* If this is not a section, try the section instead */}}
-    {{- if not $page.IsSection -}}
+    {{- if not $root.IsSection -}}
       {{- $relFilePathEn := path.Join (path.Dir $relFilePath) "_index.en.md" -}}
       {{- $absFilePathEn := path.Join $productPathPrefix $relFilePathEn -}}
 
