@@ -4,6 +4,7 @@
   {{ $topSection := .FirstSection.Section }}
   {{ $products := site.Data.products }}
   {{ $product := index $products $topSection }}
+  {{ $treeDepth := $product.startTreeFolderDepth | default 1 }}
 
   {{ $sectionLabel := site.Params.sectionLabel }}
   {{ $versionLabel := site.Params.versionLabel }}
@@ -52,45 +53,15 @@
 
   <div class="highlightable">
     <ul class="topics">
-      {{with $product}}
-        {{if .versions}}
-          {{range .versions}}
-            {{if in (split $currentPage.RelPermalink "/") .release}}
-              {{$path := print "/" $topSection "/" .release}}
-              {{$docVersion := site.GetPage $path}}
-              {{if eq site.Params.ordersectionsby "title"}}
-                {{range $docVersion.Sections.ByTitle}}
-                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
-                {{end}}
-              {{else}}
-                {{range $docVersion.Sections.ByWeight}}
-                  {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
-                {{end}}
-              {{end}}
-            {{end}}
-          {{end}}
-        {{else}}
-          {{$path := print "/" $topSection "/"}}
-          {{$docVersion := site.GetPage $path}}
-          {{if eq site.Params.ordersectionsby "title"}}
-            {{range $docVersion.Sections.ByTitle}}
-              {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
-            {{end}}
-          {{else}}
-            {{range $docVersion.Sections.ByWeight}}
-              {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
-            {{end}}
-          {{end}}
-        {{end}}
-      {{else}}
-        {{$path := print "/" $topSection "/"}}
-        {{$docVersion := site.GetPage $path}}
+      {{if $product}}
+        {{$startPointURL := delimit (first (add $treeDepth 1) (split .RelPermalink "/")) "/"}}
+        {{$docStartingFolder := site.GetPage (string $startPointURL)}}
         {{if eq site.Params.ordersectionsby "title"}}
-          {{range $docVersion.Sections.ByTitle}}
+          {{range $docStartingFolder.Pages.ByTitle}}
             {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
           {{end}}
         {{else}}
-          {{range $docVersion.Sections.ByWeight}}
+          {{range $docStartingFolder.Pages.ByWeight}}
             {{template "section-tree-nav" dict "sect" . "currentnode" $currentPage "showvisitedlinks" $showvisitedlinks}}
           {{end}}
         {{end}}
